@@ -50,7 +50,7 @@ export default function MapInner({ events }: any) {
         center={userLocation || defaultCenter}
         zoom={20}
         scrollWheelZoom={false}
-        style={{ height: 400, width: '100%' }}
+        style={{ height: '100%', width: '100%' }}
         whenReady={() => setMapReady(true)}
       >
         <TileLayer

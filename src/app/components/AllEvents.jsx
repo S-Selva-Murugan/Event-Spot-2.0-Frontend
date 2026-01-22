@@ -60,10 +60,10 @@ export default function AllEvents() {
   }
 
   return (
-    <Box sx={{ width: "100%", py: 6, px: 4 }}>
+    <Box sx={{ width: "100%", py: 4, px: 3, height: "100%" }}>
       <Grid container spacing={3} sx={{ justifyContent: "center" }}>
         {events.map((event) => (
-          <Grid item xs={12} sm={6} md={4} key={event._id}>
+          <Grid item xs={12} key={event._id}>
             <Card
               sx={{
                 height: "100%",

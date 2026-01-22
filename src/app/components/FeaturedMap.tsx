@@ -8,7 +8,7 @@ import axios from 'axios';
 // ✅ Dynamically import MapInner (Leaflet runs only on client)
 const MapInner = dynamic(() => import('../components/MapInner'), {
   ssr: false,
-  loading: () => <Box sx={{ height: 400, bgcolor: '#f0f0f0' }} />,
+  loading: () => <Box sx={{ height: '100%', bgcolor: '#f0f0f0' }} />,
 });
 
 export default function FeaturedMap() {
@@ -31,14 +31,14 @@ export default function FeaturedMap() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height={400}>
+      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ mb: 4, borderRadius: 2, overflow: 'hidden', boxShadow: 2 }}>
+    <Box sx={{ height: '100%', width: '100%', borderRadius: 0, overflow: 'hidden' }}>
       <MapInner events={events} />
     </Box>
   );
