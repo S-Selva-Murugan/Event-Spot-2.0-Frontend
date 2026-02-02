@@ -1,5 +1,5 @@
 'use client';
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -9,16 +9,25 @@ import {
   Card,
   CardContent,
   Divider,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 import Script from "next/script";
 import axios from "axios";
+import { useSelector } from "react-redux";
+import { RootState } from "@/app/redux/store";
 
 export default function EventBookingPage() {
   const params = useParams();
+  const router = useRouter();
   const eventId = params.id;
   const [event, setEvent] = useState<any>(null);
   const [ticketCount, setTicketCount] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'warning' | 'info' });
+
+  // Get user data from Redux
+  const user = useSelector((state: RootState) => state.auth);
 
   // ✅ Fetch event details
   useEffect(() => {
@@ -35,78 +44,161 @@ export default function EventBookingPage() {
     fetchEvent();
   }, [eventId]);
 
+  // Show snackbar notification
+  const showSnackbar = (message: string, severity: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   // 💳 Handle Payment
-const handlePayment = async () => {
+  const handlePayment = async () => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token || !user.isAuthenticated) {
+      showSnackbar("Please login to book tickets", "error");
+      router.push("/login");
+      return;
+    }
 
-  const token = localStorage.getItem("token") || "";
-  const provider = localStorage.getItem("provider") || undefined;
+    if (!ticketCount || ticketCount <= 0) {
+      showSnackbar("Please enter a valid number of tickets", "error");
+      return;
+    }
 
-  if (!ticketCount || ticketCount <= 0) {
-    alert("Please enter a valid number of tickets");
-    return;
-  }
+    if (ticketCount > event.totalTickets) {
+      showSnackbar(`Only ${event.totalTickets} tickets available`, "error");
+      return;
+    }
 
-  setLoading(true);
-  try {
-    // Step 1️⃣: Create Razorpay order via backend
-    const totalAmount = event.ticketPrice * ticketCount;
-    const { data: order } = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/payment/create-order`,
-      { amount: totalAmount }
-    );
+    setLoading(true);
+    try {
+      // Step 1️⃣: Create Razorpay order via backend
+      const totalAmount = event.ticketPrice * ticketCount;
+      const { data: orderData } = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/payment/create-order`,
+        { amount: totalAmount }
+      );
 
-    // Step 2️⃣: Configure Razorpay checkout options
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: order.amount,
-      currency: "INR",
-      name: "Event Spot",
-      description: `Booking for ${event.eventName}`,
-      order_id: order.id,
+      // Handle both response formats (with or without success wrapper)
+      const order = orderData.order || orderData;
+      if (!order || !order.id) {
+        throw new Error("Failed to create payment order");
+      }
 
-      // ✅ Step 3️⃣: Success handler
-      handler: async function (response: any) {
-        try {
-          alert("✅ Payment successful!");
-          console.log("Payment ID:", response.razorpay_payment_id);
+      // Step 2️⃣: Configure Razorpay checkout options
+      const razorpayKey = orderData.key || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        throw new Error("Razorpay key not configured");
+      }
 
-          // Step 4️⃣: Save booking details in backend
-          await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
-            eventId: event._id,
-            userId: "TEMP_USER_ID", // replace later with actual Cognito ID
-            tickets: ticketCount,
-            totalAmount,
-            razorpayOrderId: order.id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-          });
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: "INR",
+        name: "Event Spot",
+        description: `Booking for ${event.eventName}`,
+        order_id: order.id,
 
-          alert("🎟️ Booking confirmed!");
-        } catch (err) {
-          console.error("❌ Failed to save booking:", err);
-          alert("Booking save failed, please contact support.");
-        }
-      },
+        // ✅ Step 3️⃣: Success handler - Verify payment first, then create booking
+        handler: async function (response: any) {
+          try {
+            setLoading(true);
+            console.log("Payment response received:", response);
 
-      prefill: {
-        name: "Test User",
-        email: "test@example.com",
-        contact: "9999999999",
-      },
-      theme: { color: "#1976d2" },
-    };
+            // Step 3a: Verify payment with backend
+            const verifyRes = await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL}/payment/verify`,
+              {
+                orderId: order.id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+              }
+            );
 
-    // Step 5️⃣: Open Razorpay payment window
-    const rzp = new (window as any).Razorpay(options);
-    rzp.open();
+            if (!verifyRes.data.success) {
+              throw new Error(verifyRes.data.message || "Payment verification failed");
+            }
 
-  } catch (err) {
-    console.error("❌ Payment creation failed:", err);
-    alert("Error while creating payment");
-  } finally {
-    setLoading(false);
-  }
-};
+            console.log("✅ Payment verified successfully");
+
+            // Step 3b: Create booking (backend will verify payment again)
+            const bookingRes = await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL}/bookings`,
+              {
+                eventId: event._id,
+                tickets: ticketCount,
+                totalAmount,
+                razorpayOrderId: order.id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (bookingRes.data.success) {
+              showSnackbar("🎟️ Booking confirmed successfully!", "success");
+              // Redirect to bookings page or dashboard after 2 seconds
+              setTimeout(() => {
+                router.push("/profile");
+              }, 2000);
+            } else {
+              throw new Error(bookingRes.data.message || "Booking creation failed");
+            }
+          } catch (err: any) {
+            console.error("❌ Booking failed:", err);
+            const errorMessage = err.response?.data?.message || err.message || "Booking failed. Please contact support.";
+            showSnackbar(errorMessage, "error");
+          } finally {
+            setLoading(false);
+          }
+        },
+
+        // ✅ Payment cancellation handler
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+            showSnackbar("Payment cancelled", "info");
+          },
+        },
+
+        // ✅ Prefill with real user data
+        prefill: {
+          name: user.name || "",
+          email: user.email || "",
+          contact: "", // Add phone if available in user object
+        },
+        theme: { color: "#1976d2" },
+      };
+
+      // Step 4️⃣: Open Razorpay payment window
+      const rzp = new (window as any).Razorpay(options);
+
+      // ✅ Payment failure handler
+      rzp.on("payment.failed", function (response: any) {
+        console.error("Payment failed:", response.error);
+        setLoading(false);
+        showSnackbar(
+          `Payment failed: ${response.error.description || response.error.reason || "Unknown error"}`,
+          "error"
+        );
+      });
+
+      rzp.open();
+
+    } catch (err: any) {
+      console.error("❌ Payment creation failed:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Error while creating payment";
+      showSnackbar(errorMessage, "error");
+      setLoading(false);
+    }
+  };
 
 
   if (!event)
@@ -189,14 +281,26 @@ const handlePayment = async () => {
                   fontSize: "1rem",
                 }}
                 onClick={handlePayment}
-                disabled={loading}
+                disabled={loading || !user.isAuthenticated}
               >
-                {loading ? "Processing..." : "Book Tickets"}
+                {loading ? "Processing..." : !user.isAuthenticated ? "Please Login to Book" : "Book Tickets"}
               </Button>
             </Box>
           </CardContent>
         </Card>
       </Box>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
