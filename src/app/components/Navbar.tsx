@@ -13,11 +13,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { deepPurple } from "@mui/material/colors";
 import Popover from "@mui/material/Popover";
 import Divider from "@mui/material/Divider";
+import { useTheme } from "@mui/material/styles";
 import { RootState, AppDispatch } from "../redux/store";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/authSlice";
 
 export default function Navbar() {
+  const theme = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
@@ -50,7 +52,7 @@ export default function Navbar() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" sx={{ backgroundColor: "#1976d2" }}>
+      <AppBar position="static" sx={{ background: theme.eventSpot.gradients.navbar }}>
         <Toolbar>
           {/* Brand */}
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: "bold" }}>
@@ -72,7 +74,7 @@ export default function Navbar() {
                 px: 3,
                 py: 1,
                 backgroundColor: "#fff",
-                color: "#1976d2",
+                color: "primary.main",
                 "&:hover": { backgroundColor: "#f5f5f5" },
               }}
             >
@@ -141,11 +143,11 @@ export default function Navbar() {
                   onClick={handleProfile}
                   sx={{
                     mb: 1,
-                    color: "#1976d2",
+                    color: "primary.main",
                     fontWeight: 600,
                     textTransform: "none",
                     "&:hover": {
-                      backgroundColor: "rgba(25, 118, 210, 0.08)",
+                      backgroundColor: "rgba(15, 106, 200, 0.08)",
                     },
                   }}
                 >

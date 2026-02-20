@@ -2,8 +2,8 @@
 
 import { Box, TextField, Button, Typography, Paper, Divider } from "@mui/material";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { login } from "./../redux/authSlice";
@@ -28,17 +28,29 @@ declare module "next-auth/jwt" {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
   const { data: session, status } = useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "session_expired") {
+      setAuthError("Your session expired. Please login again.");
+    } else if (reason === "login_required") {
+      setAuthError("Please login to continue.");
+    }
+  }, [searchParams]);
 
 useEffect(() => {
   async function verifyUser() {
     if (status === "authenticated" && session?.user?.email) {
       try {
+        setAuthError("");
         const res = await fetch("http://localhost:3001/api/users/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -54,10 +66,10 @@ useEffect(() => {
         const data = await res.json();
 
         if (data.success && data.user) {
-          if (data.token) {
-            localStorage.setItem("token", data.token); // ✅ our backend JWT
-            localStorage.setItem("provider", "google");
+          if (session.idToken) {
+            localStorage.setItem("token", session.idToken);
           }
+          localStorage.setItem("provider", "google");
 
           dispatch(
             login({
@@ -69,11 +81,21 @@ useEffect(() => {
 
           router.push(data.user.role === "admin" ? "/admin/dashboard" : "/dashboard");
         } else {
-          console.error("Login failed:", data.error || data.message || "Unknown error");
-          alert(data.error || data.message || "Login failed. Please try again.");
+          const errorText = `${data?.message || ""} ${data?.error || ""} ${data?.details || ""}`.toLowerCase();
+          const tokenExpired = /token used too late|invalid or expired token|expired token|jwt.*expired/.test(errorText);
+
+          if (tokenExpired) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("provider");
+            await signOut({ redirect: false });
+            setAuthError("Google session expired. Please continue with Google again.");
+            return;
+          }
+
+          setAuthError(data.error || data.message || "Login failed. Please try again.");
         }
       } catch (error) {
-        console.error("Error verifying user:", error);
+        setAuthError("Unable to verify login right now. Please try again.");
       }
     }
   }
@@ -84,12 +106,13 @@ useEffect(() => {
 
 
   const handleGoogleSignIn = async () => {
+    setAuthError("");
     await signIn("google");
   };
 
   const handleManualLogin = async () => {
     if (!email || !password) {
-      alert("Please enter email and password.");
+      setAuthError("Please enter email and password.");
       return;
     }
 
@@ -99,6 +122,7 @@ useEffect(() => {
 
       const idToken = userSession.getIdToken().getJwtToken();
       localStorage.setItem("token", idToken);
+      localStorage.setItem("provider", "cognito");
 
       const res = await fetch("http://localhost:3001/api/users/login", {
         method: "POST",
@@ -135,7 +159,7 @@ useEffect(() => {
       } else {
         message = JSON.stringify(err);
       }
-      alert(message);
+      setAuthError(message);
     } finally {
       setLoading(false);
     }
@@ -167,6 +191,12 @@ useEffect(() => {
           <Typography variant="h5" fontWeight="bold" mb={3}>
             Welcome to Event Spot 👋
           </Typography>
+
+          {authError && (
+            <Typography variant="body2" color="error" sx={{ mb: 2, textAlign: "left" }}>
+              {authError}
+            </Typography>
+          )}
 
           <TextField
             fullWidth

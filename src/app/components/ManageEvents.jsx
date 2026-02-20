@@ -15,6 +15,7 @@ import {
   TextField,
   Box,
 } from "@mui/material";
+import { getValidatedAuthHeaders, handleAuthFailure } from "@/utils/authSession";
 
 export default function ManageEvents() {
   const [events, setEvents] = useState([]);
@@ -40,14 +41,24 @@ export default function ManageEvents() {
   const handleApprove = async (id) => {
     setLoadingEventId(id);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${id}`, {
+      const headers = getValidatedAuthHeaders(true);
+      if (!headers) return;
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/events/${id}/moderation`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ isApproved: true }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        if (handleAuthFailure(res.status, data)) return;
+        throw new Error(data?.error || "Failed to approve event");
+      }
       setEvents((prev) => prev.map((e) => (e._id === id ? { ...e, isApproved: true } : e)));
     } catch (err) {
       console.error("Approve error:", err);
+      alert(err?.message || "Failed to approve event");
+    } finally {
+      setLoadingEventId(null);
     }
   };
 
@@ -61,11 +72,18 @@ const handleDisapproveSubmit = async () => {
 
   setLoadingEventId(currentEventId); // 🔹 start loader
   try {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${currentEventId}`, {
+    const headers = getValidatedAuthHeaders(true);
+    if (!headers) return;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/events/${currentEventId}/moderation`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ isApproved: false, suggestion }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      if (handleAuthFailure(res.status, data)) return;
+      throw new Error(data?.error || "Failed to disapprove event");
+    }
 
     setEvents((prev) =>
       prev.map((e) =>
@@ -74,6 +92,7 @@ const handleDisapproveSubmit = async () => {
     );
   } catch (err) {
     console.error("Disapprove error:", err);
+    alert(err?.message || "Failed to disapprove event");
   } finally {
     // 🔹 stop loader and close popover
     setAnchorEl(null);

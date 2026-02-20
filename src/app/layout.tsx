@@ -9,6 +9,8 @@ import { ProviderWrapper } from "./redux/provideWrapper"; // ✅ import Provider
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider, CssBaseline, Box } from "@mui/material";
+import appTheme from "@/theme/appTheme";
 import Footer from "./components/Footer";
 // import { AuthProvider } from "react-oidc-context";
 
@@ -36,56 +38,57 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body style={{ margin: 0, padding: 0 }}>
-        <ProviderWrapper>
-          <SessionProvider>
-            {/* <AuthProvider {...cognitoAuthConfig}> */}
-          {hideLayout ? (
-            // ✅ No layout for login/signup
-            children
-          ) : (
-            <>
-              {/* ✅ Fixed Navbar */}
-              <div
-                style={{
-                  position: "fixed",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 1200,
-                }}
-              >
-                <Navbar />
-              </div>
+        <ThemeProvider theme={appTheme}>
+          <CssBaseline />
+          <ProviderWrapper>
+            <SessionProvider>
+              {/* <AuthProvider {...cognitoAuthConfig}> */}
+              {hideLayout ? (
+                children
+              ) : (
+                <Box sx={{ minHeight: "100vh", bgcolor: (theme) => theme.eventSpot.surfaces.page }}>
+                  <Box
+                    sx={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      zIndex: 1200,
+                    }}
+                  >
+                    <Navbar />
+                  </Box>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  marginTop: navbarHeight,
-                }}
-              >
-                {/* Sidebar */}
-                {/* <Sidebar open={sidebarOpen} toggleDrawer={toggleSidebar} /> */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      marginTop: `${navbarHeight}px`,
+                    }}
+                  >
+                    {/* Sidebar */}
+                    {/* <Sidebar open={sidebarOpen} toggleDrawer={toggleSidebar} /> */}
 
-                {/* Main content */}
-                <main
-                  style={{
-                    flexGrow: 1,
-                    // padding: "20px",
-                    minHeight: `calc(100vh - ${navbarHeight}px)`,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {children}
-                </main>
+                    <Box
+                      component="main"
+                      sx={{
+                        flexGrow: 1,
+                        minHeight: `calc(100vh - ${navbarHeight}px)`,
+                        boxSizing: "border-box",
+                        bgcolor: (theme) => theme.eventSpot.surfaces.page,
+                      }}
+                    >
+                      {children}
+                    </Box>
 
-                <ChatbotWidget />
-              </div>
-            </>
-          )}
-          {/* </AuthProvider> */}
-          </SessionProvider>
-        </ProviderWrapper>
+                    <ChatbotWidget />
+                  </Box>
+                </Box>
+              )}
+              {/* </AuthProvider> */}
+            </SessionProvider>
+          </ProviderWrapper>
+        </ThemeProvider>
                   {/* <Footer /> */}
       </body>
     </html>

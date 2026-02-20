@@ -27,6 +27,7 @@ import {
 import axios from "axios";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import { getValidatedAuthHeaders, handleAuthFailure } from "@/utils/authSession";
 
 interface User {
   _id: string;
@@ -60,10 +61,15 @@ export default function ManageUsers() {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`);
+      const headers = getValidatedAuthHeaders();
+      if (!headers) return;
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+        headers,
+      });
       setUsers(res.data);
     } catch (err: any) {
       console.error("Error fetching users:", err);
+      if (handleAuthFailure(err?.response?.status, err?.response?.data)) return;
       setError(err.response?.data?.error || "Failed to fetch users");
     } finally {
       setLoading(false);
@@ -86,15 +92,19 @@ export default function ManageUsers() {
     try {
       setActionLoading(true);
       setError(null);
+      const headers = getValidatedAuthHeaders();
+      if (!headers) return;
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser._id}`,
-        editFormData
+        editFormData,
+        { headers }
       );
       await fetchUsers(); // Refresh the list
       setEditDialogOpen(false);
       setSelectedUser(null);
     } catch (err: any) {
       console.error("Error updating user:", err);
+      if (handleAuthFailure(err?.response?.status, err?.response?.data)) return;
       setError(err.response?.data?.error || "Failed to update user");
     } finally {
       setActionLoading(false);
@@ -112,14 +122,18 @@ export default function ManageUsers() {
     try {
       setActionLoading(true);
       setError(null);
+      const headers = getValidatedAuthHeaders();
+      if (!headers) return;
       await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser._id}`
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${selectedUser._id}`,
+        { headers }
       );
       await fetchUsers(); // Refresh the list
       setDeleteDialogOpen(false);
       setSelectedUser(null);
     } catch (err: any) {
       console.error("Error deleting user:", err);
+      if (handleAuthFailure(err?.response?.status, err?.response?.data)) return;
       setError(err.response?.data?.error || "Failed to delete user");
     } finally {
       setActionLoading(false);
