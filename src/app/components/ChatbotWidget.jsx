@@ -18,14 +18,21 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 export default function ChatbotWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hi! I'm Namitha, your EventSpot Assistant. The chatbot feature is currently under development. Please use the website to explore events and make bookings!",
+      text: "Hi! I'm Namitha, your EventSpot Assistant. How can i help you today?",
+      documents: [],
     },
   ]);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  const backendBaseUrl =
+    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:3001";
+
+  const getDocMetadata = (doc) => doc?.metadata || doc?.metdata || {};
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -43,22 +50,44 @@ export default function ChatbotWidget() {
     setOpen(!open);
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const messageText = input.trim();
-    if (!messageText) return;
+    if (!messageText || isSending) return;
 
     const userMsg = { role: "user", text: messageText };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setIsSending(true);
 
-    // Simple static response
-    setTimeout(() => {
+    try {
+      const query = new URLSearchParams({ message: messageText }).toString();
+      const res = await fetch(`${backendBaseUrl}/chat?${query}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to get chatbot response.");
+      }
+
       const aiMsg = {
         role: "assistant",
-        text: "Thank you for your message! The chatbot feature is currently under development. Please browse our events or contact support for assistance.",
+        text: data?.message || "I could not generate a response.",
+        documents: Array.isArray(data?.docs) ? data.docs : [],
       };
       setMessages((prev) => [...prev, aiMsg]);
-    }, 500);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text:
+            error?.message ||
+            "Something went wrong while fetching the answer. Please try again.",
+          documents: [],
+        },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -188,6 +217,42 @@ export default function ChatbotWidget() {
                   >
                     {msg.text}
                   </Typography>
+
+                  {msg.role === "assistant" && Array.isArray(msg.documents) && msg.documents.length > 0 && (
+                    <Box
+                      sx={{
+                        mt: 0.5,
+                        px: 1,
+                        py: 0.75,
+                        borderRadius: 1.5,
+                        bgcolor: "#ffffff",
+                        border: "1px solid #e3f2fd",
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: "#0d47a1" }}>
+                        Context from PDF
+                      </Typography>
+                      {msg.documents.map((doc, docIndex) => {
+                        const metadata = getDocMetadata(doc);
+                        const page = metadata?.loc?.pageNumber;
+                        const source = metadata?.source;
+                        const pageContent = doc?.pageContent || "";
+                        const snippet = pageContent.slice(0, 180);
+
+                        return (
+                          <Typography
+                            key={`${i}-doc-${docIndex}`}
+                            variant="caption"
+                            sx={{ display: "block", mt: 0.5, color: "#374151" }}
+                          >
+                            [{docIndex + 1}] {page ? `Page ${page}` : "Page N/A"}
+                            {source ? ` | ${source}` : ""}
+                            {snippet ? ` | ${snippet}${pageContent.length > 180 ? "..." : ""}` : ""}
+                          </Typography>
+                        );
+                      })}
+                    </Box>
+                  )}
                 </Box>
                 {msg.role === "user" && (
                   <Avatar
@@ -232,11 +297,11 @@ export default function ChatbotWidget() {
             <Button
               onClick={sendMessage}
               variant="contained"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isSending}
               sx={{ minWidth: 48 }}
               aria-label="Send message"
             >
-              <SendIcon />
+              {isSending ? "..." : <SendIcon />}
             </Button>
           </Box>
         </Paper>

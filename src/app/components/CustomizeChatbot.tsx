@@ -6,20 +6,39 @@ export default function CustomizeChatbot() {
   const [file, setFile] = React.useState<File | null>(null);
   const [dragging, setDragging] = React.useState(false);
 
+  const isPdfFile = (selectedFile: File) =>
+    selectedFile.type === "application/pdf" || selectedFile.name.toLowerCase().endsWith(".pdf");
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(true); };
   const handleDragLeave = () => setDragging(false);
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const selectedFile = e.dataTransfer.files[0];
+      if (!isPdfFile(selectedFile)) {
+        alert("Please upload a PDF file only.");
+        return;
+      }
+      setFile(selectedFile);
+    }
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files[0]) setFile(e.target.files[0]); };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (!isPdfFile(selectedFile)) {
+        alert("Please upload a PDF file only.");
+        return;
+      }
+      setFile(selectedFile);
+    }
+  };
 
   const handleUpload = async () => {
   if (!file) return;
 
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("pdf", file);
 
   try {
     const res = await fetch("http://localhost:3001/api/chatbot/upload", {
@@ -44,7 +63,7 @@ export default function CustomizeChatbot() {
     <>
       <Typography variant="h6" gutterBottom>Customize Chatbot</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Upload or drag & drop your chatbot dataset/config file below.
+        Upload or drag & drop your chatbot PDF file below.
       </Typography>
 
       <Box
@@ -65,7 +84,13 @@ export default function CustomizeChatbot() {
         <Typography variant="body1" sx={{ mb: 1 }}>
           {file ? <strong>{file.name}</strong> : "Drag & drop a file here or click to upload"}
         </Typography>
-        <input id="fileInput" type="file" style={{ display: "none" }} onChange={handleFileChange} />
+        <input
+          id="fileInput"
+          type="file"
+          accept="application/pdf"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
       </Box>
 
       {file && (
