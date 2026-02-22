@@ -15,36 +15,52 @@ import {
   TextField,
   Box,
   TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import { getValidatedAuthHeaders, handleAuthFailure } from "@/utils/authSession";
 
 export default function ManageEvents() {
   const [events, setEvents] = useState([]);
+  const [totalEvents, setTotalEvents] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const [currentEventId, setCurrentEventId] = useState(null);
   const [suggestion, setSuggestion] = useState("");
   const [loadingEventId, setLoadingEventId] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  // Fetch events
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events`);
-        const data = await res.json();
-        if (res.ok) setEvents(data);
-      } catch (err) {
-        console.error("Error fetching events:", err);
+  const fetchEvents = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/events?page=${page + 1}&limit=${rowsPerPage}`
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch events");
       }
-    };
-    fetchEvents();
-  }, []);
+
+      if (Array.isArray(data)) {
+        setEvents(data);
+        setTotalEvents(data.length);
+      } else {
+        setEvents(Array.isArray(data?.data) ? data.data : []);
+        setTotalEvents(Number(data?.total) || 0);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setEvents([]);
+      setTotalEvents(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
 
   useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(events.length / rowsPerPage) - 1);
-    if (page > maxPage) setPage(maxPage);
-  }, [events.length, page]);
+    fetchEvents();
+  }, [fetchEvents]);
 
   const handleApprove = async (id) => {
     setLoadingEventId(id);
@@ -113,8 +129,6 @@ const handleDisapproveSubmit = async () => {
 
   const open = Boolean(anchorEl);
   const id = open ? "suggestion-popover" : undefined;
-  const pagedEvents = events.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
   const handleChangePage = (_event, newPage) => {
     setPage(newPage);
   };
@@ -159,7 +173,13 @@ const handleDisapproveSubmit = async () => {
           </TableHead>
 
           <TableBody>
-            {events.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 2 }}>
+                  <CircularProgress size={22} />
+                </TableCell>
+              </TableRow>
+            ) : events.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center">
                   <Typography variant="body2" color="text.secondary">
@@ -168,7 +188,7 @@ const handleDisapproveSubmit = async () => {
                 </TableCell>
               </TableRow>
             ) : (
-              pagedEvents.map((event) => (
+              events.map((event) => (
               <TableRow
                 key={event._id}
                 sx={{
@@ -292,7 +312,7 @@ const handleDisapproveSubmit = async () => {
       </TableContainer>
       <TablePagination
         component="div"
-        count={events.length}
+        count={totalEvents}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}

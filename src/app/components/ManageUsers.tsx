@@ -41,6 +41,7 @@ interface User {
 
 export default function ManageUsers() {
   const [users, setUsers] = React.useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
@@ -55,34 +56,40 @@ export default function ManageUsers() {
   const [page, setPage] = React.useState(0);
   const rowsPerPage = 10;
 
-  // Fetch users from API
-  React.useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  React.useEffect(() => {
-    const maxPage = Math.max(0, Math.ceil(users.length / rowsPerPage) - 1);
-    if (page > maxPage) setPage(maxPage);
-  }, [users.length, page]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const headers = getValidatedAuthHeaders();
       if (!headers) return;
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/users?page=${page + 1}&limit=${rowsPerPage}`,
+        {
         headers,
       });
-      setUsers(res.data);
+
+      if (Array.isArray(res.data)) {
+        setUsers(res.data);
+        setTotalUsers(res.data.length);
+      } else {
+        setUsers(Array.isArray(res.data?.data) ? res.data.data : []);
+        setTotalUsers(Number(res.data?.total) || 0);
+      }
     } catch (err: any) {
       console.error("Error fetching users:", err);
       if (handleAuthFailure(err?.response?.status, err?.response?.data)) return;
       setError(err.response?.data?.error || "Failed to fetch users");
+      setUsers([]);
+      setTotalUsers(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  // Fetch users from API
+  React.useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleEditClick = (user: User) => {
     setSelectedUser(user);
@@ -161,14 +168,6 @@ export default function ManageUsers() {
 
   const pagedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <>
       <Typography variant="h6" gutterBottom>
@@ -224,7 +223,13 @@ export default function ManageUsers() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 2 }}>
+                  <CircularProgress size={22} />
+                </TableCell>
+              </TableRow>
+            ) : users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center">
                   <Typography variant="body2" color="text.secondary">
@@ -314,7 +319,7 @@ export default function ManageUsers() {
       </TableContainer>
       <TablePagination
         component="div"
-        count={users.length}
+        count={totalUsers}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}

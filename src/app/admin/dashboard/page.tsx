@@ -24,7 +24,7 @@ export default function AdminDashboard() {
       sx={{
         position: "relative",
         width: "100%",
-        mt: 0,
+        mt: { xs: 1, sm: 1.5 },
         px: { xs: 1, sm: 2 },
         py: { xs: 0.5, sm: 1 },
         boxSizing: "border-box",
