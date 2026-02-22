@@ -234,7 +234,16 @@ export default function CustomizeChatbot() {
       )}
 
       <Paper sx={{ mt: 4, p: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 1,
+            mb: 1,
+          }}
+        >
           <Typography variant="subtitle1" fontWeight={600}>
             Uploaded PDFs
           </Typography>
@@ -255,12 +264,21 @@ export default function CustomizeChatbot() {
           <List dense>
             {uploadedFiles.map((uploaded, index) => (
               <React.Fragment key={uploaded.filename}>
-                <ListItem disableGutters>
+                <ListItem
+                  disableGutters
+                  sx={{
+                    display: "flex",
+                    alignItems: { xs: "flex-start", sm: "center" },
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: { xs: 1, sm: 0 },
+                  }}
+                >
                   <ListItemText
                     primary={uploaded.originalName}
                     secondary={`${formatSize(uploaded.size)} • ${new Date(uploaded.uploadedAt).toLocaleString()}`}
+                    sx={{ pr: { sm: 2 }, width: "100%" }}
                   />
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ width: { xs: "100%", sm: "auto" } }}>
                     <Button size="small" variant="outlined" onClick={() => handlePreview(uploaded)}>
                       Preview
                     </Button>

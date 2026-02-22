@@ -14,6 +14,7 @@ import {
   Popover,
   TextField,
   Box,
+  TablePagination,
 } from "@mui/material";
 import { getValidatedAuthHeaders, handleAuthFailure } from "@/utils/authSession";
 
@@ -23,6 +24,8 @@ export default function ManageEvents() {
   const [currentEventId, setCurrentEventId] = useState(null);
   const [suggestion, setSuggestion] = useState("");
   const [loadingEventId, setLoadingEventId] = useState(null);
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
 
   // Fetch events
   useEffect(() => {
@@ -37,6 +40,11 @@ export default function ManageEvents() {
     };
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(events.length / rowsPerPage) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [events.length, page]);
 
   const handleApprove = async (id) => {
     setLoadingEventId(id);
@@ -105,34 +113,129 @@ const handleDisapproveSubmit = async () => {
 
   const open = Boolean(anchorEl);
   const id = open ? "suggestion-popover" : undefined;
+  const pagedEvents = events.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const handleChangePage = (_event, newPage) => {
+    setPage(newPage);
+  };
 
   return (
     <>
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        sx={{
+          mt: 1,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          borderRadius: 2,
+          backgroundColor: "transparent",
+          boxShadow: "none",
+          border: "none",
+        }}
+      >
+        <Table
+          size="small"
+          sx={{
+            minWidth: { xs: 420, sm: 760 },
+            borderCollapse: "separate",
+            borderSpacing: "0 3px",
+            "& .MuiTableCell-root": {
+              borderBottom: "none",
+              fontSize: "0.86rem",
+              py: 0.75,
+              lineHeight: 1.2,
+            },
+          }}
+        >
           <TableHead sx={{ backgroundColor: "#1976d2" }}>
             <TableRow>
-              <TableCell sx={{ color: "white" }}>Event Name</TableCell>
-              <TableCell sx={{ color: "white" }}>Date</TableCell>
-              <TableCell sx={{ color: "white" }}>Location</TableCell>
-              <TableCell sx={{ color: "white" }}>Tickets</TableCell>
-              <TableCell sx={{ color: "white" }}>Ticket Price</TableCell>
-              <TableCell sx={{ color: "white" }}>Actions</TableCell>
+              <TableCell sx={{ color: "white", borderTopLeftRadius: 12, borderBottomLeftRadius: 12, py: 0.85, fontSize: "0.83rem" }}>Event Name</TableCell>
+              <TableCell sx={{ color: "white", py: 0.85, fontSize: "0.83rem" }}>Date</TableCell>
+              <TableCell sx={{ color: "white", display: { xs: "none", sm: "table-cell" }, py: 0.85, fontSize: "0.83rem" }}>Location</TableCell>
+              <TableCell sx={{ color: "white", display: { xs: "none", sm: "table-cell" }, py: 0.85, fontSize: "0.83rem" }}>Tickets</TableCell>
+              <TableCell sx={{ color: "white", display: { xs: "none", sm: "table-cell" }, py: 0.85, fontSize: "0.83rem" }}>Ticket Price</TableCell>
+              <TableCell sx={{ color: "white", borderTopRightRadius: 12, borderBottomRightRadius: 12, py: 0.85, fontSize: "0.83rem" }}>Actions</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
-            {events.map((event) => (
-              <TableRow key={event._id}>
-                <TableCell>{event.eventName}</TableCell>
+            {events.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography variant="body2" color="text.secondary">
+                    No events found
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              pagedEvents.map((event) => (
+              <TableRow
+                key={event._id}
+                sx={{
+                  "& .MuiTableCell-root": {
+                    backgroundColor: "rgba(231, 236, 244, 0.88)",
+                    py: 0.68,
+                    transition: "background-color 0.2s ease, transform 0.2s ease",
+                  },
+                  "& .MuiTableCell-root:first-of-type": {
+                    borderTopLeftRadius: 12,
+                    borderBottomLeftRadius: 12,
+                  },
+                  "& .MuiTableCell-root:last-of-type": {
+                    borderTopRightRadius: 12,
+                    borderBottomRightRadius: 12,
+                  },
+                  "&:hover .MuiTableCell-root": {
+                    backgroundColor: "rgba(220, 228, 239, 0.95)",
+                  },
+                }}
+              >
+                <TableCell>
+                  <Typography
+                    fontWeight={500}
+                    fontSize="0.95rem"
+                    sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}
+                    title={event.eventName}
+                  >
+                    {event.eventName}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      display: { xs: "block", sm: "none" },
+                      mt: 0.5,
+                      maxWidth: 180,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={event.location}
+                  >
+                    {event.location}
+                  </Typography>
+                </TableCell>
                 <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
-                <TableCell>{event.location}</TableCell>
-                <TableCell>{event.totalTickets}</TableCell>
-                <TableCell>{event.ticketPrice}</TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                  <Typography
+                    sx={{
+                      maxWidth: { sm: 220, md: 320, lg: 420 },
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      fontSize: "0.88rem",
+                    }}
+                    title={event.location}
+                  >
+                    {event.location}
+                  </Typography>
+                </TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{event.totalTickets}</TableCell>
+                <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{event.ticketPrice}</TableCell>
 <TableCell>
   {event.isApproved === null ? (
     // PENDING STATE
-    <Box display="flex" gap={1}>
+    <Box display="flex" gap={1} flexDirection={{ xs: "column", sm: "row" }}>
       <Button
         size="small"
         variant="contained"
@@ -154,7 +257,20 @@ const handleDisapproveSubmit = async () => {
     </Box>
   ) : event.isApproved === true ? (
     // APPROVED STATE
-    <Typography color="success.main">Approved</Typography>
+    <Typography
+      sx={{
+        color: "success.dark",
+        fontWeight: 600,
+        display: "inline-block",
+        px: 0.8,
+        py: 0.15,
+        fontSize: "0.82rem",
+        borderRadius: 999,
+        backgroundColor: "rgba(56, 142, 60, 0.14)",
+      }}
+    >
+      Approved
+    </Typography>
   ) : (
     // DISAPPROVED STATE
     <Box>
@@ -169,10 +285,25 @@ const handleDisapproveSubmit = async () => {
 </TableCell>
 
               </TableRow>
-            ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={events.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10]}
+        sx={{
+          "& .MuiTablePagination-toolbar": { minHeight: 30, px: 0.25 },
+          "& .MuiTablePagination-selectLabel, & .MuiTablePagination-input": { display: "none" },
+          "& .MuiTablePagination-displayedRows": { margin: 0, fontSize: "0.75rem" },
+          "& .MuiIconButton-root": { p: 0.5 },
+        }}
+      />
 
 <Popover
   id={id}

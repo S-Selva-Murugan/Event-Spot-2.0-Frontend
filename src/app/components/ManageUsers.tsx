@@ -23,6 +23,7 @@ import {
   InputLabel,
   Alert,
   IconButton,
+  TablePagination,
 } from "@mui/material";
 import axios from "axios";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -51,11 +52,18 @@ export default function ManageUsers() {
     role: "customer" as "admin" | "customer",
   });
   const [actionLoading, setActionLoading] = React.useState(false);
+  const [page, setPage] = React.useState(0);
+  const rowsPerPage = 10;
 
   // Fetch users from API
   React.useEffect(() => {
     fetchUsers();
   }, []);
+
+  React.useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(users.length / rowsPerPage) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [users.length, page]);
 
   const fetchUsers = async () => {
     try {
@@ -147,6 +155,12 @@ export default function ManageUsers() {
     setError(null);
   };
 
+  const handleChangePage = (_event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const pagedUsers = users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -167,15 +181,46 @@ export default function ManageUsers() {
         </Alert>
       )}
 
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        sx={{
+          mt: 1,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          backgroundColor: "transparent",
+          boxShadow: "none",
+          border: "none",
+        }}
+      >
+        <Table
+          size="small"
+          sx={{
+            minWidth: { xs: 420, sm: 700 },
+            borderCollapse: "separate",
+            borderSpacing: "0 3px",
+            "& .MuiTableCell-root": {
+              borderBottom: "none",
+              fontSize: "0.86rem",
+              py: 0.75,
+              lineHeight: 1.2,
+            },
+          }}
+        >
           <TableHead sx={{ backgroundColor: "#1976d2" }}>
             <TableRow>
-              <TableCell sx={{ color: "white" }}>Name</TableCell>
-              <TableCell sx={{ color: "white" }}>Email</TableCell>
-              <TableCell sx={{ color: "white" }}>Role</TableCell>
-              <TableCell sx={{ color: "white" }}>Created At</TableCell>
-              <TableCell sx={{ color: "white" }}>Actions</TableCell>
+              <TableCell sx={{ color: "white", borderTopLeftRadius: 12, borderBottomLeftRadius: 12, py: 0.85, fontSize: "0.83rem" }}>
+                Name
+              </TableCell>
+              <TableCell sx={{ color: "white", display: { xs: "none", sm: "table-cell" }, py: 0.85, fontSize: "0.83rem" }}>
+                Email
+              </TableCell>
+              <TableCell sx={{ color: "white", py: 0.85, fontSize: "0.83rem" }}>Role</TableCell>
+              <TableCell sx={{ color: "white", display: { xs: "none", sm: "table-cell" }, py: 0.85, fontSize: "0.83rem" }}>
+                Created At
+              </TableCell>
+              <TableCell sx={{ color: "white", borderTopRightRadius: 12, borderBottomRightRadius: 12, py: 0.85, fontSize: "0.83rem" }}>
+                Actions
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -188,10 +233,42 @@ export default function ManageUsers() {
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell>{user.name || "N/A"}</TableCell>
-                  <TableCell>{user.email}</TableCell>
+              pagedUsers.map((user) => (
+                <TableRow
+                  key={user._id}
+                  sx={{
+                    "& .MuiTableCell-root": {
+                      backgroundColor: "rgba(224, 230, 239, 0.72)",
+                      py: 0.68,
+                    },
+                    "& .MuiTableCell-root:first-of-type": {
+                      borderTopLeftRadius: 12,
+                      borderBottomLeftRadius: 12,
+                    },
+                    "& .MuiTableCell-root:last-of-type": {
+                      borderTopRightRadius: 12,
+                      borderBottomRightRadius: 12,
+                    },
+                  }}
+                >
+                  <TableCell>
+                    <Typography
+                      fontWeight={500}
+                      fontSize="0.95rem"
+                      sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}
+                      title={user.name || "N/A"}
+                    >
+                      {user.name || "N/A"}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: { xs: "block", sm: "none" }, mt: 0.5 }}
+                    >
+                      {user.email}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{user.email}</TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"
@@ -204,7 +281,7 @@ export default function ManageUsers() {
                       {user.role}
                     </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
                     {user.createdAt
                       ? new Date(user.createdAt).toLocaleDateString()
                       : "N/A"}
@@ -235,6 +312,20 @@ export default function ManageUsers() {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={users.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10]}
+        sx={{
+          "& .MuiTablePagination-toolbar": { minHeight: 30, px: 0.25 },
+          "& .MuiTablePagination-selectLabel, & .MuiTablePagination-input": { display: "none" },
+          "& .MuiTablePagination-displayedRows": { margin: 0, fontSize: "0.75rem" },
+          "& .MuiIconButton-root": { p: 0.5 },
+        }}
+      />
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onClose={handleCloseDialogs} maxWidth="sm" fullWidth>

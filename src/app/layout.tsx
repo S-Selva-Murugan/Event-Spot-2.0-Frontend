@@ -46,7 +46,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {hideLayout ? (
                 children
               ) : (
-                <Box sx={{ minHeight: "100vh", bgcolor: (theme) => theme.eventSpot.surfaces.page }}>
+                <Box
+                  sx={{
+                    minHeight: "100dvh",
+                    bgcolor: (theme) => theme.eventSpot.surfaces.page,
+                    pt: `${navbarHeight}px`,
+                  }}
+                >
                   <Box
                     sx={{
                       position: "fixed",
@@ -63,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     sx={{
                       display: "flex",
                       flexDirection: "row",
-                      marginTop: `${navbarHeight}px`,
+                      minHeight: `calc(100dvh - ${navbarHeight}px)`,
                     }}
                   >
                     {/* Sidebar */}
@@ -73,7 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                       component="main"
                       sx={{
                         flexGrow: 1,
-                        minHeight: `calc(100vh - ${navbarHeight}px)`,
+                        minHeight: `calc(100dvh - ${navbarHeight}px)`,
                         boxSizing: "border-box",
                         bgcolor: (theme) => theme.eventSpot.surfaces.page,
                       }}
