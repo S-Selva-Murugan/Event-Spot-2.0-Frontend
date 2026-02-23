@@ -1,22 +1,45 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, TextField, Button, Typography, Paper } from "@mui/material";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+const countryCodeOptions = [
+  { code: "+91", label: "India (+91)" },
+  { code: "+1", label: "United States (+1)" },
+  { code: "+44", label: "United Kingdom (+44)" },
+  { code: "+61", label: "Australia (+61)" },
+  { code: "+65", label: "Singapore (+65)" },
+  { code: "+971", label: "UAE (+971)" },
+];
 
 export default function OTPVerificationPage() {
   const navbarHeight = 64;
   const router = useRouter();
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const fullPhoneNumber = `${countryCode}${mobileNumber.trim()}`;
+
   // ✅ Send OTP (calls Next.js API route)
   const handleSendOTP = async () => {
-    if (!phoneNumber.startsWith("+") || phoneNumber.length < 10) {
-      alert("Enter a valid phone number with country code, e.g. +919876543210");
+    const normalized = mobileNumber.replace(/\D/g, "");
+    if (normalized.length < 6 || normalized.length > 14) {
+      alert("Enter a valid mobile number.");
       return;
     }
 
@@ -25,7 +48,7 @@ export default function OTPVerificationPage() {
       const res = await fetch("http://localhost:3000/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber }),
+        body: JSON.stringify({ phoneNumber: fullPhoneNumber }),
       });
 
       const data = await res.json();
@@ -52,7 +75,7 @@ export default function OTPVerificationPage() {
       const res = await fetch("http://localhost:3000/api/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, otp }),
+        body: JSON.stringify({ phoneNumber: fullPhoneNumber, otp }),
       });
 
       const data = await res.json();
@@ -111,15 +134,32 @@ export default function OTPVerificationPage() {
                 Enter your mobile number to receive an OTP
               </Typography>
 
-              <TextField
-                label="Phone Number"
-                fullWidth
-                margin="normal"
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                helperText="Include country code, e.g. +91XXXXXXXXXX"
-              />
+              <Box sx={{ display: "grid", gridTemplateColumns: "40% 1fr", gap: 1.2, mt: 1 }}>
+                <FormControl fullWidth>
+                  <InputLabel id="country-code-label">Code</InputLabel>
+                  <Select
+                    labelId="country-code-label"
+                    value={countryCode}
+                    label="Code"
+                    onChange={(e) => setCountryCode(String(e.target.value))}
+                  >
+                    {countryCodeOptions.map((option) => (
+                      <MenuItem key={option.code} value={option.code}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  label="Mobile Number"
+                  fullWidth
+                  type="tel"
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ""))}
+                  inputProps={{ maxLength: 14 }}
+                />
+              </Box>
 
               <Button
                 fullWidth
@@ -139,7 +179,7 @@ export default function OTPVerificationPage() {
           ) : (
             <>
               <Typography variant="body2" color="text.secondary" mb={3}>
-                Enter the OTP sent to <strong>{phoneNumber}</strong>
+                Enter the OTP sent to <strong>{fullPhoneNumber}</strong>
               </Typography>
 
               <TextField

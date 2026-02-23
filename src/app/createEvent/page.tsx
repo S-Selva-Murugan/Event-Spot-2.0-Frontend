@@ -5,6 +5,9 @@ import Script from "next/script";
 import {
   Box,
   Button,
+  Checkbox,
+  Chip,
+  Divider,
   FormControlLabel,
   MenuItem,
   Paper,
@@ -38,7 +41,7 @@ export default function CreateEventPage() {
     foodAvailable: false,
     contactEmail: "",
     contactPhone: "",
-    photos: [] as string[],
+    photos: [] as File[],
   });
 
   const locationRef = useRef<HTMLInputElement | null>(null);
@@ -161,11 +164,10 @@ const submitEvent = async () => {
     switch (step) {
       case 0:
         return (
-          <>
+          <Box sx={{ display: "grid", gap: 1.5 }}>
             <TextField
               fullWidth
               label="Event Name"
-              margin="normal"
               value={formData.eventName}
               onChange={(e) => handleChange("eventName", e.target.value)}
             />
@@ -173,7 +175,8 @@ const submitEvent = async () => {
             <TextField
               fullWidth
               label="Event Description"
-              margin="normal"
+              multiline
+              minRows={3}
               value={formData.eventDescription}
               onChange={(e) => handleChange("eventDescription", e.target.value)}
             />
@@ -182,7 +185,6 @@ const submitEvent = async () => {
               fullWidth
               label="Event Type"
               select
-              margin="normal"
               value={formData.eventType}
               onChange={(e) => handleChange("eventType", e.target.value)}
             >
@@ -196,7 +198,6 @@ const submitEvent = async () => {
             <TextField
               fullWidth
               label="Location"
-              margin="normal"
               inputRef={locationRef}
               value={formData.location}
               onChange={(e) => {
@@ -211,23 +212,21 @@ const submitEvent = async () => {
               }
             />
 
-            <TextField
-              type="date"
-              fullWidth
-              label="Event Date"
-              InputLabelProps={{ shrink: true }}
-              margin="normal"
-              value={formData.date}
-              onChange={(e) => handleChange("date", e.target.value)}
-            />
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 1.2 }}>
+              <TextField
+                type="date"
+                fullWidth
+                label="Event Date"
+                InputLabelProps={{ shrink: true }}
+                value={formData.date}
+                onChange={(e) => handleChange("date", e.target.value)}
+              />
 
-            <Box display="flex" gap={2}>
               <TextField
                 type="time"
                 fullWidth
                 label="Start Time"
                 InputLabelProps={{ shrink: true }}
-                margin="normal"
                 value={formData.startTime}
                 onChange={(e) => handleChange("startTime", e.target.value)}
               />
@@ -236,54 +235,46 @@ const submitEvent = async () => {
                 fullWidth
                 label="End Time"
                 InputLabelProps={{ shrink: true }}
-                margin="normal"
                 value={formData.endTime}
                 onChange={(e) => handleChange("endTime", e.target.value)}
               />
             </Box>
 
-            <Box mt={2}>
-              <Typography variant="subtitle1" fontWeight="bold" mb={1}>
-                Upload Event Photos (max 3)
+            <Paper
+              variant="outlined"
+              sx={{
+                mt: 0.5,
+                p: 1.5,
+                borderRadius: 2.5,
+                borderStyle: "dashed",
+                borderColor: "rgba(55, 95, 145, 0.45)",
+                background: "rgba(248, 252, 255, 0.72)",
+              }}
+            >
+              <Typography variant="subtitle2" fontWeight={700} mb={1}>
+                Event Photos (max 3)
               </Typography>
-              <Button variant="outlined" component="label">
+              <Button variant="outlined" component="label" sx={{ textTransform: "none", borderRadius: 2 }}>
                 Upload Photos
                 <input type="file" accept="image/*" multiple hidden onChange={handlePhotoUpload} />
               </Button>
 
-              <Box mt={2} display="flex" gap={2} flexWrap="wrap">
-                {formData.photos.map((src, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      width: 100,
-                      height: 100,
-                      borderRadius: 2,
-                      overflow: "hidden",
-                      border: "1px solid #ccc",
-                    }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src}
-                      alt={`Event photo ${idx + 1}`}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  </Box>
+              <Box mt={1.4} display="flex" gap={1} flexWrap="wrap">
+                {formData.photos.map((file, idx) => (
+                  <Chip key={`${file.name}-${idx}`} label={file.name} variant="outlined" />
                 ))}
               </Box>
-            </Box>
-          </>
+            </Paper>
+          </Box>
         );
 
       case 1:
         return (
-          <>
+          <Box sx={{ display: "grid", gap: 1.5 }}>
             <TextField
               fullWidth
               type="number"
               label="Total Tickets"
-              margin="normal"
               value={formData.totalTickets}
               onChange={(e) => handleChange("totalTickets", e.target.value)}
             />
@@ -292,20 +283,18 @@ const submitEvent = async () => {
               fullWidth
               type="number"
               label="Ticket Price (₹)"
-              margin="normal"
               value={formData.ticketPrice}
               onChange={(e) => handleChange("ticketPrice", e.target.value)}
             />
-          </>
+          </Box>
         );
 
       case 2:
         return (
-          <>
+          <Box sx={{ display: "grid", gap: 1.2 }}>
             <FormControlLabel
               control={
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={formData.parkingAvailable}
                   onChange={(e) => handleChange("parkingAvailable", e.currentTarget.checked)}
                 />
@@ -315,8 +304,7 @@ const submitEvent = async () => {
 
             <FormControlLabel
               control={
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={formData.foodAvailable}
                   onChange={(e) => handleChange("foodAvailable", e.currentTarget.checked)}
                 />
@@ -327,7 +315,6 @@ const submitEvent = async () => {
             <TextField
               fullWidth
               label="Contact Email"
-              margin="normal"
               value={formData.contactEmail}
               onChange={(e) => handleChange("contactEmail", e.target.value)}
             />
@@ -335,11 +322,10 @@ const submitEvent = async () => {
             <TextField
               fullWidth
               label="Contact Phone"
-              margin="normal"
               value={formData.contactPhone}
               onChange={(e) => handleChange("contactPhone", e.target.value)}
             />
-          </>
+          </Box>
         );
 
       case 3:
@@ -374,20 +360,77 @@ const submitEvent = async () => {
 
       <Box
         sx={{
-          backgroundColor: "#f5f5f5",
-          minHeight: "100vh",
+          position: "relative",
+          minHeight: "calc(100dvh - 64px)",
           display: "flex",
           justifyContent: "center",
-          alignItems: "center",
-          py: 5,
+          alignItems: "flex-start",
+          py: { xs: 2, sm: 3.5 },
+          px: { xs: 1, sm: 2 },
         }}
       >
-        <Paper elevation={5} sx={{ width: "100%", maxWidth: 900, p: 5, borderRadius: 4, textAlign: "center" }}>
-          <Typography variant="h4" fontWeight="bold" mb={3}>
+        <Box
+          sx={{
+            position: "fixed",
+            top: "64px",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: "url('/bg_event3.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.96,
+            filter: "saturate(1.14) contrast(1.02)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+        <Box
+          sx={{
+            position: "fixed",
+            top: "64px",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background:
+              "linear-gradient(180deg, rgba(242,247,254,0.60) 0%, rgba(230,239,250,0.67) 100%)",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+
+        <Paper
+          elevation={0}
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            width: "100%",
+            maxWidth: 960,
+            p: { xs: 2, sm: 3.5, md: 4.5 },
+            borderRadius: 4,
+            textAlign: "center",
+            backgroundColor: "rgba(245, 249, 255, 0.82)",
+            backdropFilter: "blur(4px)",
+            border: "1px solid rgba(178, 193, 212, 0.7)",
+            boxShadow: "0 18px 40px rgba(30, 60, 95, 0.18)",
+          }}
+        >
+          <Typography variant="h4" fontWeight={800} mb={1.2} color="#144b8b">
             Create Your Event
           </Typography>
+          <Typography variant="body2" sx={{ mb: 2.5, color: "rgba(26, 46, 76, 0.85)" }}>
+            Complete all steps to publish your event for review.
+          </Typography>
 
-          <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel
+            sx={{
+              mb: 2.8,
+              "& .MuiStepLabel-label": { fontWeight: 600, fontSize: { xs: "0.74rem", sm: "0.84rem" } },
+            }}
+          >
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
@@ -395,14 +438,44 @@ const submitEvent = async () => {
             ))}
           </Stepper>
 
-          {renderStepContent(activeStep)}
+          <Divider sx={{ mb: 2 }} />
+
+          <Box
+            sx={{
+              textAlign: "left",
+              borderRadius: 3,
+              p: { xs: 1.2, sm: 2 },
+              background: "rgba(255,255,255,0.62)",
+              border: "1px solid rgba(190, 206, 225, 0.6)",
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2.2,
+                backgroundColor: "rgba(255,255,255,0.85)",
+              },
+            }}
+          >
+            {renderStepContent(activeStep)}
+          </Box>
 
           <Box display="flex" justifyContent="space-between" mt={4}>
-            <Button variant="outlined" onClick={handleBack} disabled={activeStep === 0}>
+            <Button variant="outlined" onClick={handleBack} disabled={activeStep === 0} sx={{ borderRadius: 2.3, px: 2.6, textTransform: "none", fontWeight: 700 }}>
               Back
             </Button>
 
-            <Button variant="contained" onClick={handleNext}>
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              sx={{
+                borderRadius: 2.3,
+                px: 2.8,
+                textTransform: "none",
+                fontWeight: 700,
+                background: "linear-gradient(90deg, #1e67b9 0%, #2f82de 100%)",
+                boxShadow: "0 10px 18px rgba(35, 105, 190, 0.34)",
+                "&:hover": {
+                  background: "linear-gradient(90deg, #1e67b9 0%, #2f82de 100%)",
+                },
+              }}
+            >
               {activeStep === steps.length - 1 ? "Submit" : "Next"}
             </Button>
           </Box>
