@@ -38,10 +38,7 @@ export default function Navbar() {
     router.push("/login");
   };
 
-  const handleProfile = () => {
-    handleClose();
-    router.push("/profile");
-  };
+  const dashboardHref = authState.role === "admin" ? "/admin/dashboard" : "/dashboard";
 
   const getInitials = (name: string) =>
     name
@@ -59,29 +56,6 @@ export default function Navbar() {
             EventSpot
           </Typography>
 
-          {/* “List Your Event” button for logged-in non-admin users */}
-          {authState.isAuthenticated && authState.role !== "admin" && (
-            <Button
-              component={Link}
-              href="/otpVerification"
-              variant="contained"
-              color="secondary"
-              sx={{
-                textTransform: "none",
-                mr: 2,
-                fontWeight: "bold",
-                borderRadius: "20px",
-                px: 3,
-                py: 1,
-                backgroundColor: "#fff",
-                color: "primary.main",
-                "&:hover": { backgroundColor: "#f5f5f5" },
-              }}
-            >
-              List Your Event
-            </Button>
-          )}
-
           {/* Auth state check */}
           {!authState.isAuthenticated ? (
             <Button
@@ -98,8 +72,68 @@ export default function Navbar() {
             </Button>
           ) : (
             <>
+              <Typography
+                component={Link}
+                href={dashboardHref}
+                sx={{
+                  color: "inherit",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                  transition: "text-shadow 0.2s ease, opacity 0.2s ease",
+                  "&:hover": {
+                    textDecoration: "none",
+                    textShadow: "0 0 10px rgba(255, 255, 255, 0.65)",
+                    opacity: 0.95,
+                  },
+                }}
+              >
+                Dashboard
+              </Typography>
+
+              {authState.role !== "admin" && (
+                <>
+                  <Typography sx={{ mx: 1, opacity: 0.8 }}>|</Typography>
+                  <Typography
+                    component={Link}
+                    href="/profile"
+                    sx={{
+                      color: "inherit",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      transition: "text-shadow 0.2s ease, opacity 0.2s ease",
+                      "&:hover": {
+                        textDecoration: "none",
+                        textShadow: "0 0 10px rgba(255, 255, 255, 0.65)",
+                        opacity: 0.95,
+                      },
+                    }}
+                  >
+                    Profile
+                  </Typography>
+
+                  <Typography sx={{ mx: 1, opacity: 0.8 }}>|</Typography>
+                  <Typography
+                    component={Link}
+                    href="/otpVerification"
+                    sx={{
+                      color: "inherit",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      transition: "text-shadow 0.2s ease, opacity 0.2s ease",
+                      "&:hover": {
+                        textDecoration: "none",
+                        textShadow: "0 0 10px rgba(255, 255, 255, 0.65)",
+                        opacity: 0.95,
+                      },
+                    }}
+                  >
+                    List Your Events
+                  </Typography>
+                </>
+              )}
+
               {/* Avatar */}
-              <IconButton onClick={handleClick} sx={{ p: 0 }}>
+              <IconButton onClick={handleClick} sx={{ p: 0, ml: 1.5 }}>
                 <Avatar
                   sx={{
                     bgcolor: deepPurple[500],
@@ -126,39 +160,31 @@ export default function Navbar() {
                   horizontal: "right",
                 }}
                 PaperProps={{
-                  sx: { p: 2, width: 220, borderRadius: 2 },
+                  sx: { p: 2, width: 280, maxWidth: "90vw", borderRadius: 2 },
                 }}
               >
                 <Typography variant="subtitle1" fontWeight="bold">
                   {authState.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    mb: 1,
+                    wordBreak: "break-all",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {authState.email}
                 </Typography>
                 <Divider sx={{ my: 1 }} />
 
                 <Button
-                  variant="text"
-                  fullWidth
-                  onClick={handleProfile}
-                  sx={{
-                    mb: 1,
-                    color: "primary.main",
-                    fontWeight: 600,
-                    textTransform: "none",
-                    "&:hover": {
-                      backgroundColor: "rgba(15, 106, 200, 0.08)",
-                    },
-                  }}
-                >
-                  Profile
-                </Button>
-
-                <Button
-                  variant="outlined"
+                  variant="contained"
                   color="error"
                   fullWidth
                   onClick={handleLogout}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
                 >
                   Logout
                 </Button>

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export default function OTPVerificationPage() {
+  const navbarHeight = 64;
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -76,7 +77,7 @@ export default function OTPVerificationPage() {
     <Box
       sx={{
         display: "flex",
-        height: "100vh",
+        minHeight: `calc(100dvh - ${navbarHeight}px)`,
         overflow: "hidden",
       }}
     >
@@ -195,7 +196,7 @@ export default function OTPVerificationPage() {
           flex: 1,
           display: { xs: "none", md: "block" },
           position: "relative",
-          height: "100vh",
+          minHeight: `calc(100dvh - ${navbarHeight}px)`,
         }}
       >
         <Image src="/otp.jpg" alt="OTP Verification" fill style={{ objectFit: "cover" }} />

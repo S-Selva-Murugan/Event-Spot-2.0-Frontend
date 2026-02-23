@@ -1,10 +1,36 @@
-import AllEvents from "../components/AllEvents"
+"use client";
+import AllEvents from "../components/AllEvents";
 import FeaturedMap from "../components/FeaturedMap";
 import { Box } from "@mui/material";
 import BannerCarousel from "../components/BannerCarousel";
 import DashboardFooter from "../components/DashboardFooter";
+import EventsSearchFilter from "../components/EventsSearchFilter";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [category, setCategory] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setSearchQuery(searchInput.trim()), 350);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  const handleClearFilters = () => {
+    setSearchInput("");
+    setSearchQuery("");
+    setCategory("");
+    setMinPrice("");
+    setMaxPrice("");
+    setStartDate("");
+    setEndDate("");
+  };
+
   return (
     <Box
       sx={{
@@ -45,7 +71,7 @@ export default function DashboardPage() {
             border: "1px solid rgba(173, 188, 208, 0.6)",
           }}
         >
-          <FeaturedMap/>
+          <FeaturedMap />
         </Box>
 
         <Box
@@ -53,13 +79,42 @@ export default function DashboardPage() {
             width: { xs: "100%", md: "50%" },
             height: { xs: 520, sm: 610, md: "100%" },
             minHeight: 0,
-            overflow: "auto",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
             borderRadius: 3,
             border: "1px solid rgba(173, 188, 208, 0.6)",
             background: "rgba(244,248,253,0.82)",
           }}
         >
-          <AllEvents/>
+          <EventsSearchFilter
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            category={category}
+            setCategory={setCategory}
+            minPrice={minPrice}
+            setMinPrice={setMinPrice}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            onClearFilters={handleClearFilters}
+          />
+
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <AllEvents
+              filters={{
+                searchQuery,
+                category,
+                minPrice,
+                maxPrice,
+                startDate,
+                endDate,
+              }}
+            />
+          </Box>
         </Box>
       </Box>
 
