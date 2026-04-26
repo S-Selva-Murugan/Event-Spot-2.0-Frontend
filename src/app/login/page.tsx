@@ -31,6 +31,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const dispatch = useDispatch<AppDispatch>();
   const { data: session, status } = useSession();
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,62 +47,62 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-useEffect(() => {
-  async function verifyUser() {
-    if (status === "authenticated" && session?.user?.email) {
-      try {
-        setAuthError("");
-        const res = await fetch("http://localhost:3001/api/users/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: session.user.email,
-            name: session.user.name,
-            image: session.user.image,
-            provider: "google",
-            idToken: session.idToken, // ✅ send google token
-          }),
-        });
+  useEffect(() => {
+    async function verifyUser() {
+      if (status === "authenticated" && session?.user?.email) {
+        try {
+          setAuthError("");
+          const res = await fetch(`${apiBaseUrl}/users/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: session.user.email,
+              name: session.user.name,
+              image: session.user.image,
+              provider: "google",
+              idToken: session.idToken, // ✅ send google token
+            }),
+          });
 
-        const data = await res.json();
+          const data = await res.json();
 
-        if (data.success && data.user) {
-          if (session.idToken) {
-            localStorage.setItem("token", session.idToken);
+          if (data.success && data.user) {
+            if (session.idToken) {
+              localStorage.setItem("token", session.idToken);
+            }
+            localStorage.setItem("provider", "google");
+
+            dispatch(
+              login({
+                email: data.user.email,
+                name: data.user.name,
+                role: data.user.role,
+              })
+            );
+
+            router.push(data.user.role === "admin" ? "/admin/dashboard" : "/dashboard");
+          } else {
+            const errorText = `${data?.message || ""} ${data?.error || ""} ${data?.details || ""}`.toLowerCase();
+            const tokenExpired = /token used too late|invalid or expired token|expired token|jwt.*expired/.test(errorText);
+
+            if (tokenExpired) {
+              localStorage.removeItem("token");
+              localStorage.removeItem("provider");
+              await signOut({ redirect: false });
+              setAuthError("Google session expired. Please continue with Google again.");
+              return;
+            }
+
+            setAuthError(data.error || data.message || "Login failed. Please try again.");
           }
-          localStorage.setItem("provider", "google");
-
-          dispatch(
-            login({
-              email: data.user.email,
-              name: data.user.name,
-              role: data.user.role,
-            })
-          );
-
-          router.push(data.user.role === "admin" ? "/admin/dashboard" : "/dashboard");
-        } else {
-          const errorText = `${data?.message || ""} ${data?.error || ""} ${data?.details || ""}`.toLowerCase();
-          const tokenExpired = /token used too late|invalid or expired token|expired token|jwt.*expired/.test(errorText);
-
-          if (tokenExpired) {
-            localStorage.removeItem("token");
-            localStorage.removeItem("provider");
-            await signOut({ redirect: false });
-            setAuthError("Google session expired. Please continue with Google again.");
-            return;
-          }
-
-          setAuthError(data.error || data.message || "Login failed. Please try again.");
+        } catch (error) {
+          setAuthError("Unable to verify login right now. Please try again.");
         }
-      } catch (error) {
-        setAuthError("Unable to verify login right now. Please try again.");
       }
     }
-  }
 
-  verifyUser();
-}, [status, session]);
+    verifyUser();
+  }, [apiBaseUrl, dispatch, router, session, status]);
 
 
 
@@ -124,7 +125,7 @@ useEffect(() => {
       localStorage.setItem("token", idToken);
       localStorage.setItem("provider", "cognito");
 
-      const res = await fetch("http://localhost:3001/api/users/login", {
+      const res = await fetch(`${apiBaseUrl}/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
