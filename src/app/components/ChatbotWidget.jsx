@@ -24,7 +24,7 @@ export default function ChatbotWidget() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hi! I'm Namitha, your EventSpot Assistant. How can i help you today?",
+      text: "Hi! I'm Chitti, your EventSpot Assistant. How can i help you today?",
       documents: [],
     },
   ]);
@@ -53,7 +53,7 @@ export default function ChatbotWidget() {
       <Box
         component="img"
         src={assistantAvatarSrc}
-        alt="Namitha"
+        alt="Chitti"
         sx={{
           width: "118%",
           height: "118%",
@@ -208,7 +208,7 @@ export default function ChatbotWidget() {
                     letterSpacing: "0.2px",
                   }}
                 >
-                  Namitha
+                  Chitti
                 </Typography>
                 <Typography sx={{ fontSize: "0.75rem", opacity: 0.9 }}>
                   EventSpot Concierge Assistant
