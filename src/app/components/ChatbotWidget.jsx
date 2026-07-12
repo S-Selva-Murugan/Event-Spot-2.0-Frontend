@@ -35,6 +35,112 @@ export default function ChatbotWidget() {
     process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") || "http://localhost:3001";
 
   const getDocMetadata = (doc) => doc?.metadata || doc?.metdata || {};
+
+  const renderInlineMarkdown = (text) => {
+    const parts = String(text || "").split(/(\*\*.*?\*\*)/g);
+
+    return parts.filter(Boolean).map((part, index) => {
+      const isBold = part.startsWith("**") && part.endsWith("**") && part.length > 4;
+      if (isBold) {
+        return (
+          <Box key={index} component="span" sx={{ fontWeight: 700 }}>
+            {part.slice(2, -2)}
+          </Box>
+        );
+      }
+
+      return (
+        <Box key={index} component="span">
+          {part}
+        </Box>
+      );
+    });
+  };
+
+  const renderAssistantMessage = (text) => {
+    const lines = String(text || "").split("\n");
+
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+        {lines.map((line, index) => {
+          const trimmed = line.trim();
+
+          if (!trimmed) {
+            return <Box key={index} sx={{ height: 6 }} />;
+          }
+
+          const headingMatch = trimmed.match(/^#{1,6}\s+(.*)$/);
+          if (headingMatch) {
+            return (
+              <Box
+                key={index}
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  lineHeight: 1.35,
+                  mt: index === 0 ? 0 : 0.4,
+                }}
+              >
+                {renderInlineMarkdown(headingMatch[1])}
+              </Box>
+            );
+          }
+
+          const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
+          if (bulletMatch) {
+            return (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 0.9,
+                  lineHeight: 1.5,
+                }}
+              >
+                <Box component="span" sx={{ fontWeight: 700 }}>
+                  •
+                </Box>
+                <Box component="div" sx={{ flex: 1 }}>
+                  {renderInlineMarkdown(bulletMatch[1])}
+                </Box>
+              </Box>
+            );
+          }
+
+          const numberedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+          if (numberedMatch) {
+            return (
+              <Box
+                key={index}
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 0.9,
+                  lineHeight: 1.5,
+                }}
+              >
+                <Box component="span" sx={{ fontWeight: 700 }}>
+                  {numberedMatch[1]}.
+                </Box>
+                <Box component="div" sx={{ flex: 1 }}>
+                  {renderInlineMarkdown(numberedMatch[2])}
+                </Box>
+              </Box>
+            );
+          }
+
+          return (
+            <Box key={index} component="div" sx={{ lineHeight: 1.5 }}>
+              {renderInlineMarkdown(trimmed)}
+            </Box>
+          );
+        })}
+      </Box>
+    );
+  };
+
   const assistantAvatarSrc = "/support.jpg";
   const AssistantAvatar = ({ size = 36 }) => (
     <Box
@@ -255,8 +361,7 @@ export default function ChatbotWidget() {
                     gap: 0.7,
                   }}
                 >
-                  <Typography
-                    variant="body2"
+                  <Box
                     sx={{
                       background:
                         msg.role === "user"
@@ -277,8 +382,14 @@ export default function ChatbotWidget() {
                       lineHeight: 1.45,
                     }}
                   >
-                    {msg.text}
-                  </Typography>
+                    {msg.role === "assistant" ? (
+                      renderAssistantMessage(msg.text)
+                    ) : (
+                      <Typography variant="body2" sx={{ color: "inherit", whiteSpace: "pre-wrap" }}>
+                        {msg.text}
+                      </Typography>
+                    )}
+                  </Box>
 
                   {msg.role === "assistant" && Array.isArray(msg.documents) && msg.documents.length > 0 && (
                     <Box
